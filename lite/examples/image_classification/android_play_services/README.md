@@ -11,11 +11,18 @@ It performs the following operations:
 3.  Performs inference on the transformed frames
 4.  Reports the image recognized on the screen
 
+**Terms:**
+By accessing or using TensorFlow Lite in Google Play services, you agree
+to the
+[Terms of Service](https://www.tensorflow.org/lite/android/play_services#tos).
+Please read and understand all applicable terms and policies before accessing
+the APIs.
+
 ### Model
 
 This app uses EfficientNet-Lite model for demonstration. For details of the
 model used, visit
-[Image classification](https://www.tensorflow.org/lite/models/image_classification/overview).
+[Image classification](https://www.tensorflow.org/lite/examples/image_classification/overview).
 
 Downloading, extracting, and placing the model in the assets folder is managed
 automatically by download.gradle.

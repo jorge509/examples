@@ -13,11 +13,11 @@
 # limitations under the License.
 """Image DataLoader for Searcher task."""
 
-import imghdr
 import logging
 import os
 
 import numpy as np
+import tensorflow as tf
 from tensorflow_examples.lite.model_maker.core.api.api_util import mm_export
 from tensorflow_examples.lite.model_maker.core.data_util import metadata_loader
 from tensorflow_examples.lite.model_maker.core.data_util import searcher_dataloader
@@ -49,6 +49,7 @@ class DataLoader(searcher_dataloader.DataLoader):
     super().__init__(embedder_path=embedder.options.base_options.file_name)
 
     # Creates the metadata loader.
+    self.metadata_type = metadata_type
     if metadata_type is _MetadataType.FROM_FILE_NAME:
       self._metadata_loader = metadata_loader.MetadataLoader.from_file_name()
     elif metadata_type is _MetadataType.FROM_DAT_FILE:
@@ -78,7 +79,10 @@ class DataLoader(searcher_dataloader.DataLoader):
     """
     # Creates ImageEmbedder.
     image_embedder_path = os.path.abspath(image_embedder_path)
-    base_options = _BaseOptions(file_name=image_embedder_path)
+    with tf.io.gfile.GFile(image_embedder_path, "rb") as f:
+      image_embedder_content = f.read()
+    base_options = _BaseOptions(
+        file_content=image_embedder_content, file_name=image_embedder_path)
     embedding_options = embedding_options_pb2.EmbeddingOptions(
         l2_normalize=l2_normalize)
     options = image_embedder.ImageEmbedderOptions(
@@ -87,7 +91,7 @@ class DataLoader(searcher_dataloader.DataLoader):
 
     return cls(embedder, metadata_type)
 
-  def load_from_folder(self, path: str) -> None:
+  def load_from_folder(self, path: str, mode: str = "r") -> None:
     """Loads image data from folder.
 
     Users can load images from different folders one by one. For instance,
@@ -102,19 +106,31 @@ class DataLoader(searcher_dataloader.DataLoader):
 
     Args:
       path: image directory to be loaded.
+      mode: mode in which the file is opened, Used when metadata_type is
+        FROM_DAT_FILE. Only 'r' and 'rb' are supported. 'r' means opening for
+        reading, 'rb' means opening for reading binary.
     """
     embedding_list = []
     metadata_list = []
 
     i = 0
     # Gets the image files in the folder and loads images.
-    for root, _, files in os.walk(path):
+    for root, _, files in tf.io.gfile.walk(path):
       for name in files:
         image_path = os.path.join(root, name)
-        if imghdr.what(image_path) is None:
+        if image_path.lower().endswith(".dat"):
           continue
 
-        image = tensor_image.TensorImage.create_from_file(image_path)
+        try:
+          with tf.io.gfile.GFile(image_path, "rb") as f:
+            buffer = f.read()
+          image = tensor_image.TensorImage.create_from_buffer(buffer)
+        except RuntimeError as e:
+          logging.warning(
+              "Can't read image from the image path %s with the error %s",
+              image_path, e)
+          continue
+
         try:
           embedding = self._embedder.embed(
               image).embeddings[0].feature_vector.value
@@ -124,7 +140,10 @@ class DataLoader(searcher_dataloader.DataLoader):
           continue
 
         embedding_list.append(embedding)
-        metadata = self._metadata_loader.load(image_path)
+        if self.metadata_type == _MetadataType.FROM_DAT_FILE:
+          metadata = self._metadata_loader.load(image_path, mode=mode)
+        else:
+          metadata = self._metadata_loader.load(image_path)
         metadata_list.append(metadata)
 
         i += 1
