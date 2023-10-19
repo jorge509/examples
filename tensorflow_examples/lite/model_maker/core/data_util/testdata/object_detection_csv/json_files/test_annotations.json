@@ -1,13 +1,25 @@
 {
   "images": [
     {
-      "file_name": "279324025_3e74a32a84_o.jpg",
+      "file_name": "20V.jpg",
       "height": 1200,
       "width": 1600,
       "id": 2
     },
     {
-      "file_name": "3167707458_7b2eebed9e_o.jpg",
+      "file_name": "50.jpg",
+      "height": 2167,
+      "width": 2207,
+      "id": 3
+    },
+    {
+      "file_name": "100jpg",
+      "height": 2167,
+      "width": 2207,
+      "id": 3
+    },
+    {
+      "file_name": "500.jpg",
       "height": 2167,
       "width": 2207,
       "id": 3
